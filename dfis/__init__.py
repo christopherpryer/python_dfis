@@ -3,8 +3,9 @@ import sys
 
 import pandas as pd
 import logging
-
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+__version__ = 'v1'
 
 class Config:
     def __init__(self, module):
