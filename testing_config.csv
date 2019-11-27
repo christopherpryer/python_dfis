@@ -1,0 +1,4 @@
+attributes,period_type,n_periods
+sku+origin_id+dest_id,W,13
+sku+origin_id+channel,W,13
+sku+origin_id+channel,W,13
