@@ -14,7 +14,7 @@ class Config:
         self.setup()
 
         if self.info.empty:
-            logging.warn('levels, data, and storage need configuration: %s' % self.to_dict)
+            logging.warn('levels, data, and storage need configuration: %s' % self.info_to_dict)
         elif len(self.info) > 1:
             logging.warn('only the first row was used in %s.' % config_name)
 
@@ -43,8 +43,14 @@ class Config:
             self.data = pd.read_csv(os.path.join(self.root, self.info.data.iloc[0]))
             self.storage = os.path.join(self.root, self.info.storage.iloc[0])
             
-    def to_dict(self):
+    def info_to_dict(self):
         return {
             'root': self.root,
             'info': self.info.to_dict()
         }
+
+class App(Config):
+    def __init__(self, module):
+        Config.__init__(self, module)
+
+    
