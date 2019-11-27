@@ -22,3 +22,11 @@ def test_config_init():
 def test_app_init():
     app = App(__name__)
     check_instance(app)
+
+def test_app_run():
+    app = App(__name__)
+    app.run()
+
+    assert app.data.date.dtype != str
+    assert len(app.get_attributes()) >= 1
+    assert len(list(app.results)) > 0
