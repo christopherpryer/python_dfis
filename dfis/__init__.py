@@ -22,11 +22,11 @@ class Config:
         """takes path (directory); returns dataframe"""
         info_name = ''
         info_data = pd.DataFrame()
-        if 'config.csv' in os.listdir(self.root):
-            config_name = 'config.csv'
+        if 'config.csv' in os.listdir(path):
+            info_name = 'config.csv'
             info_data = pd.read_csv(os.path.join(path, info_name))
-        elif 'testing_config.csv' in os.listdir(self.root):
-            config_name = 'testing_config.csv'
+        elif 'testing_config.csv' in os.listdir(path):
+            info_name = 'testing_config.csv'
             info_data = pd.read_csv(os.path.join(path, info_name))
         return info_data
         
