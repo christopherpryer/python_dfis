@@ -14,9 +14,9 @@ class Config:
         self.setup()
 
         if self.info.empty:
-            logging.warn('levels, data, and storage need configuration: %s.' % self.info_to_dict)
+            logging.warning('levels, data, and storage need configuration: %s.' % self.info_to_dict)
         elif len(self.info) > 1:
-            logging.warn('only the first row was used in %s.' % config_name)
+            logging.warning('only the first row was used in %s.' % config_name)
 
     @staticmethod
     def get_config_info(path):
@@ -122,3 +122,14 @@ class App(Config):
                 'data': result,
                 'info': self.levels.iloc[i].to_dict()
             }
+
+    def save(self, results):
+        if len(results) == 0:
+            logging.warning('no result data found. %s' % results)
+        
+        for r in results:
+            if not results[r]['data'].empty:
+                filename = '%s.csv' % '_'.join([str(v) for v in results[r]['info'].values()])
+                filepath = os.path.join(self.root, self.storage, filename)
+                results[r]['data'].to_csv(filepath)
+        logging.info('completed save to %s.' % filepath)

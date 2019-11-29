@@ -30,3 +30,8 @@ def test_app_run():
     assert app.data.date.dtype != str
     assert len(app.get_attributes()) >= 1
     assert len(list(app.results)) > 0
+
+    app.save(app.results)
+
+    assert os.path.exists(os.path.join(app.root, app.storage))
+    assert len(os.listdir(os.path.join(app.root, app.storage))) > 1
