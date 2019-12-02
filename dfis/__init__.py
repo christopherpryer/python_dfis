@@ -2,6 +2,7 @@ import os
 import sys
 
 import pandas as pd
+import numpy as np
 import logging
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
@@ -22,14 +23,14 @@ class Config:
     def get_config_info(path):
         """takes path (directory); returns dataframe"""
         info_name = ''
-        info_data = pd.DataFrame()
+        infodata = pd.DataFrame()
         if 'config.csv' in os.listdir(path):
             info_name = 'config.csv'
-            info_data = pd.read_csv(os.path.join(path, info_name))
+            infodata = pd.read_csv(os.path.join(path, info_name))
         elif 'testing_config.csv' in os.listdir(path):
             info_name = 'testing_config.csv'
-            info_data = pd.read_csv(os.path.join(path, info_name))
-        return info_data
+            infodata = pd.read_csv(os.path.join(path, info_name))
+        return infodata
         
     def setup(self):
         self.levels = pd.DataFrame() # algo config data
@@ -98,6 +99,22 @@ class App(Config):
         buckets = App.get_period_df(df, period_type).groupby(attributes).size().rename('buckets')
         adi = (n_periods / buckets).rename('adi')
         return pd.concat([adi, buckets], axis=1)
+    
+    @staticmethod
+    def classify(data):
+        data['classification'] = np.nan
+        is_intermittent = (data.adi >= 1.32) & (data.cv2 < 0.49)
+        is_lumpy = (data.adi >= 1.32) & (data.cv2 >= 0.49)
+        is_smooth = (data.adi < 1.32) & (data.cv2 < 0.49)
+        is_erratic = (data.adi < 1.32) & (data.cv2 >= 0.49)
+        is_ext_slow = (data.buckets <= 3) | (data.cv2.isna())
+        data.loc[is_intermittent, 'classification'] = 'intermittent'
+        data.loc[is_lumpy, 'classification'] = 'lumpy'
+        data.loc[is_smooth, 'classification'] = 'smooth'
+        data.loc[is_erratic, 'classification'] = 'erratic'
+        data.loc[data.cv2 >= 25, 'classification'] = 'extremely variable'
+        data.loc[is_ext_slow, 'classification'] = 'extremely slow'
+        return data
 
     def get_attributes(self):
         attributes = []
@@ -119,7 +136,7 @@ class App(Config):
                 self.data, attrs, self.levels.period_type.iloc[i], self.levels.n_periods.iloc[i])
             result = pd.concat([pop_stats, period_stats], axis=1)
             self.results[i] = {
-                'data': result,
+                'data': self.classify(result),
                 'info': self.levels.iloc[i].to_dict()
             }
 
