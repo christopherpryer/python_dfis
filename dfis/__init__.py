@@ -14,7 +14,7 @@ class Config:
         self.setup()
 
         if self.info.empty:
-            logging.warning('levels, data, and storage need configuration: %s.' % self.info_to_dict)
+            logging.warning('levels, data, and storage need configuration: %s.' % self.info_to_dict())
         elif len(self.info) > 1:
             logging.warning('only the first row was used in %s.' % config_name)
 
