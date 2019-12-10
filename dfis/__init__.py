@@ -59,46 +59,40 @@ class App(Config):
         return pd.to_datetime(series, infer_datetime_format=True, errors='coerce')
 
     @staticmethod
-    def get_population_stats(df, attributes, num_col='quantity'):
+    def get_period_df(df, attributes, period_type, date_col='date', numeric_col='quantity'):
+        _types = {col: str for col in attributes}
+        return df.astype(_types).groupby(attributes + [pd.Grouper(key=date_col, freq=period_type)])[numeric_col]\
+                .sum().reset_index()
+
+    @staticmethod
+    def get_period_stats(df, attributes, period_type, n_periods, num_col='quantity'):
         """
-        population == attributes group; returns resulting dataframe concat
-        - sum
-        - count
-        - 𝐶𝑉2=(𝜎𝑝/𝜇𝑝)2
+        period == period_type group; returns resulting dataframe concat
+        - buckets - periods with demand
+        - std
+        - avg
+        - sums
+        - counts
+        - 𝐴𝐷𝐼=𝑝𝑛/𝑑𝑛
+
+        𝑝𝑛 : number of periods
+        𝑑𝑛 : number of demand periods with demand (buckets)
+        𝐴𝐷𝐼 : Average Demand Interval
 
         𝜎𝑝: standard deviation of population
         𝜇𝑝: average of population
         𝐶𝑉2: coefficient of variation
         """
+        data = App.get_period_df(df, attributes, period_type)
         aggfunc = {num_col: ['std', 'mean', 'count', 'sum']}
-        _types = {col: str for col in attributes}
-        result = df.astype(_types).groupby(attributes).agg(aggfunc)
-        cv2 = ((result[(num_col, 'std')] / result[(num_col, 'mean')]) ** 2).rename('cv2')
+        buckets = data.groupby(attributes).size().rename('buckets')
+        result = data.groupby(attributes).agg(aggfunc)
+        std = result[(num_col, 'std')].rename('std')
+        avg = result[(num_col, 'mean')].rename('avg')
         sums = result[(num_col, 'sum')].rename('quantity')
-        counts = result[(num_col, 'count')].rename('counts')
-        return pd.concat([cv2, sums, counts], axis=1)
-
-    @staticmethod
-    def get_period_df(df, period_type, date_col='date', numeric_col='quantity'):
-        _cols = [col for col in df.columns if col not in [date_col, numeric_col]]
-        _types = {col: str for col in _cols}
-        return df.astype(_types).groupby(_cols + [pd.Grouper(key=date_col, freq=period_type)])\
-            [numeric_col].sum().reset_index()
-
-    @staticmethod
-    def get_period_stats(df, attributes, period_type, n_periods):
-        """
-        period == period_type group; returns resulting dataframe concat
-        - buckets (count of periods with demand)
-        - 𝐴𝐷𝐼=𝑝𝑛/𝑑𝑛
-
-        𝑝𝑛 : number of periods
-        𝑑𝑛 : number of demand buckets
-        𝐴𝐷𝐼 : Average Demand Interval
-        """
-        buckets = App.get_period_df(df, period_type).groupby(attributes).size().rename('buckets')
         adi = (n_periods / buckets).rename('adi')
-        return pd.concat([adi, buckets], axis=1)
+        cv2 = ((std /  avg)** 2).rename('cv2')
+        return pd.concat([std, avg, sums, buckets, adi, cv2], axis=1)
     
     @staticmethod
     def classify(data):
@@ -131,12 +125,10 @@ class App(Config):
         attributes = self.get_attributes()
         for i, attrs in enumerate(attributes):
             logging.info('running level %s: %s.' % (i, attrs))
-            pop_stats = self.get_population_stats(self.data, attrs, 'quantity')
-            period_stats = self.get_period_stats(
+            stats = self.get_period_stats(
                 self.data, attrs, self.levels.period_type.iloc[i], self.levels.n_periods.iloc[i])
-            result = pd.concat([pop_stats, period_stats], axis=1)
             self.results[i] = {
-                'data': self.classify(result),
+                'data': self.classify(stats),
                 'info': self.levels.iloc[i].to_dict()
             }
 
